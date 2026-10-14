@@ -48,6 +48,80 @@ app.post("/productos", (req, res) => {
   });
 });
 
+// Crear un mensaje de contacto
+app.post("/contacto", (req, res) => {
+  const { nombre, correo, asunto, mensaje } = req.body || {};
+  const datos = [nombre, correo, asunto, mensaje];
+
+  if (datos.some((valor) => typeof valor !== "string" || !valor.trim())) {
+    return res.status(400).json({ mensaje: "Todos los campos son obligatorios" });
+  }
+
+  const valores = datos.map((valor) => valor.trim());
+  const [nombreLimpio, correoLimpio, asuntoLimpio, mensajeLimpio] = valores;
+
+  if (
+    nombreLimpio.length > 100 ||
+    correoLimpio.length > 254 ||
+    asuntoLimpio.length > 150 ||
+    mensajeLimpio.length > 5000
+  ) {
+    return res.status(400).json({ mensaje: "Uno o más campos superan el límite permitido" });
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)) {
+    return res.status(400).json({ mensaje: "Ingresa un correo electrónico válido" });
+  }
+
+  const sql =
+    "INSERT INTO contactos (nombre, correo, asunto, mensaje) VALUES (?, ?, ?, ?)";
+
+  conexion.query(sql, valores, (error, resultado) => {
+    if (error) {
+      console.error("Error al guardar el mensaje de contacto:", error);
+      return res.status(500).json({ mensaje: "Error al enviar el mensaje" });
+    }
+
+    res.status(201).json({
+      mensaje: "Mensaje enviado correctamente",
+      id: resultado.insertId,
+    });
+  });
+});
+
+// Consultar mensajes públicos sin exponer el correo electrónico
+app.get("/contacto/mensajes", (req, res) => {
+  const sql =
+    "SELECT id, nombre, asunto, mensaje, fecha_creacion FROM contactos ORDER BY fecha_creacion DESC";
+
+  conexion.query(sql, (error, resultados) => {
+    if (error) {
+      console.error("Error al consultar los mensajes de contacto:", error);
+      return res.status(500).json({ mensaje: "Error al consultar los mensajes" });
+    }
+    res.json(resultados);
+  });
+});
+
+// Eliminar un mensaje del historial público
+app.delete("/contacto/mensajes/:id", (req, res) => {
+  if (!/^[1-9]\d*$/.test(req.params.id)) {
+    return res.status(400).json({ mensaje: "El identificador del mensaje no es válido" });
+  }
+
+  const sql = "DELETE FROM contactos WHERE id = ?";
+  conexion.query(sql, [req.params.id], (error, resultado) => {
+    if (error) {
+      console.error("Error al eliminar el mensaje de contacto:", error);
+      return res.status(500).json({ mensaje: "Error al eliminar el mensaje" });
+    }
+    if (resultado.affectedRows === 0) {
+      return res.status(404).json({ mensaje: "No se encontró el mensaje" });
+    }
+    res.json({ mensaje: "Mensaje eliminado correctamente" });
+  });
+});
+
 // 3. Actualizar un producto existente (UPDATE)
 app.put("/productos/:id", (req, res) => {
   const id = req.params.id;

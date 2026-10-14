@@ -132,14 +132,144 @@ async function eliminarProducto(id) {
   }
 }
 
-// 5. Formulario de contacto (demostrativo en contacto.html)
+// 5. Enviar un mensaje de contacto
 if (formContacto) {
-  formContacto.addEventListener("submit", (e) => {
-    e.preventDefault();
-    alert("¡Mensaje de contacto enviado con éxito!");
-    formContacto.reset();
+  const estadoContacto = document.getElementById("estadoContacto");
+  const btnEnviarContacto = document.getElementById("btnEnviarContacto");
+
+  formContacto.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const datos = Object.fromEntries(new FormData(formContacto).entries());
+    const mostrarEstado = (mensaje, tipo) => {
+      if (!estadoContacto) return;
+      estadoContacto.textContent = mensaje;
+      estadoContacto.className = `estado-contacto ${tipo}`;
+    };
+
+    btnEnviarContacto.disabled = true;
+    mostrarEstado("Enviando tu mensaje...", "cargando");
+
+    try {
+      const respuesta = await fetch(`${API_URL}/contacto`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datos),
+      });
+      const resultado = await respuesta.json();
+
+      if (!respuesta.ok) {
+        throw new Error(resultado.mensaje || "No se pudo enviar el mensaje");
+      }
+
+      mostrarEstado(resultado.mensaje, "exito");
+      formContacto.reset();
+      if (document.getElementById("listaMensajesContacto")) {
+        await cargarMensajesContacto();
+      }
+    } catch (error) {
+      console.error("Error al enviar el mensaje de contacto:", error);
+      mostrarEstado(
+        error instanceof Error && !(error instanceof TypeError)
+          ? error.message
+          : "No se pudo conectar con el servidor. Verifica tu conexión e inténtalo de nuevo.",
+        "error"
+      );
+    } finally {
+      btnEnviarContacto.disabled = false;
+    }
   });
+}
+
+async function cargarMensajesContacto() {
+  const estado = document.getElementById("estadoHistorialContacto");
+  const lista = document.getElementById("listaMensajesContacto");
+  if (!estado || !lista) return;
+
+  estado.textContent = "Cargando mensajes...";
+  estado.className = "estado-contacto cargando";
+
+  try {
+    const respuesta = await fetch(`${API_URL}/contacto/mensajes`);
+    const resultado = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(resultado.mensaje || "No se pudieron cargar los mensajes");
+    }
+
+    lista.replaceChildren();
+    if (resultado.length === 0) {
+      estado.textContent = "Todavía no hay mensajes recibidos.";
+      estado.className = "estado-contacto";
+      return;
+    }
+
+    resultado.forEach((mensaje) => {
+      const tarjeta = document.createElement("article");
+      tarjeta.className = "mensaje-contacto";
+
+      const titulo = document.createElement("h3");
+      titulo.textContent = mensaje.asunto;
+
+      const meta = document.createElement("p");
+      meta.className = "mensaje-meta";
+      const fecha = new Date(mensaje.fecha_creacion);
+      const fechaTexto = Number.isNaN(fecha.getTime())
+        ? "Fecha no disponible"
+        : fecha.toLocaleString("es");
+      meta.textContent = `${mensaje.nombre} · ${fechaTexto}`;
+
+      const cuerpo = document.createElement("p");
+      cuerpo.className = "mensaje-contenido";
+      cuerpo.textContent = mensaje.mensaje;
+
+      const botonEliminar = document.createElement("button");
+      botonEliminar.type = "button";
+      botonEliminar.className = "btn-eliminar-mensaje";
+      botonEliminar.textContent = "Eliminar mensaje";
+      botonEliminar.addEventListener("click", () => eliminarMensajeContacto(mensaje.id));
+
+      tarjeta.append(titulo, meta, cuerpo, botonEliminar);
+      lista.appendChild(tarjeta);
+    });
+
+    estado.textContent = `${resultado.length} mensaje${resultado.length === 1 ? "" : "s"}.`;
+    estado.className = "estado-contacto exito";
+  } catch (error) {
+    console.error("Error al cargar los mensajes de contacto:", error);
+    estado.textContent =
+      error instanceof Error && !(error instanceof TypeError)
+        ? error.message
+        : "No se pudo conectar con el servidor. Inténtalo de nuevo.";
+    estado.className = "estado-contacto error";
+  }
+}
+
+async function eliminarMensajeContacto(id) {
+  if (!confirm("¿Deseas eliminar este mensaje de forma permanente?")) return;
+
+  try {
+    const respuesta = await fetch(`${API_URL}/contacto/mensajes/${id}`, {
+      method: "DELETE",
+    });
+    const resultado = await respuesta.json();
+
+    if (!respuesta.ok) {
+      throw new Error(resultado.mensaje || "No se pudo eliminar el mensaje");
+    }
+
+    await cargarMensajesContacto();
+  } catch (error) {
+    console.error("Error al eliminar el mensaje de contacto:", error);
+    const estado = document.getElementById("estadoHistorialContacto");
+    estado.textContent =
+      error instanceof Error && !(error instanceof TypeError)
+        ? error.message
+        : "No se pudo conectar con el servidor. Inténtalo de nuevo.";
+    estado.className = "estado-contacto error";
+  }
 }
 
 // Llamado inicial al cargar la página
 cargarProductos();
+cargarMensajesContacto();
