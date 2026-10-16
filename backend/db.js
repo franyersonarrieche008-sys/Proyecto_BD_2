@@ -1,21 +1,40 @@
+require("dotenv").config();
 const mysql = require("mysql2");
 
-// Configuración de la conexión a mysql
-const conexion = mysql.createConnection({
-  host: "127.0.0.1",    // Servidor local
-  port: 3307, // usa el puerto que muestra XAMPP
-  user: "root",        // Usuario de MySQL (Por defecto en XAMPP)
-  password: "",        // Contraseña de MySQL (Por defecto en XAMPP es vacía)
-  database: "tienda"    // Nombre de nuestra BD
-});
+// Configuración de la conexión de la BD
+const host = process.env.DB_HOST || "localhost";
+const port = Number(process.env.DB_PORT) || 3307;
+const user = process.env.DB_USER || "root";
+const password = process.env.DB_PASSWORD || "";
+const database =  process.env.DB_NAME || "tienda";
 
-// Comprobar si la conexión fue exitosa
+// Opciones de configuración
+const configuracion = {
+  host,
+  port,
+  user,
+  password,
+  database,
+};
+
+// Si el host es remoto (TiDB Cloud), habilitar el SSL automáticamente
+if (host !== "localhost" && host !== "127.0.0.1") {
+  configuracion.ssl = {
+    minVersion: "TLSv1.2",
+    rejectUnauthorized: true,
+  };
+}
+
+// Crear la conexión con MySQL o TiDB Cloude
+const conexion = mysql.createConnection(configuracion)
+
+// Comprobamos si la conexión fue exitosa
 conexion.connect((error) => {
   if (error) {
-    console.error("Error al conectar con MySQL: ", error);
+    console.error("Error al conectar con la Base de Datos", error.message);
     return;
   }
-  console.log("Conexión exitosa con MySQL");
+  console.log(`Conexión exitosa con la Base de Datos (${host}:${port})`);
 });
 
 // Exportar la conexión para usarla en otros archivos
