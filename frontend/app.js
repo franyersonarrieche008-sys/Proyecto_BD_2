@@ -12,6 +12,30 @@ const btnCancelar = document.getElementById("btnCancelar");
 const tituloFormulario = document.getElementById("tituloFormulario");
 const formContacto = document.getElementById("formularioContacto");
 
+const navToggle = document.querySelector(".nav-toggle");
+const navLinks = document.getElementById("navegacion-principal");
+
+if (navToggle && navLinks) {
+  const cerrarMenu = () => {
+    navLinks.classList.remove("is-open");
+    navToggle.setAttribute("aria-expanded", "false");
+    navToggle.setAttribute("aria-label", "Abrir menú");
+  };
+
+  navToggle.addEventListener("click", () => {
+    const menuAbierto = navToggle.getAttribute("aria-expanded") === "true";
+    navLinks.classList.toggle("is-open", !menuAbierto);
+    navToggle.setAttribute("aria-expanded", String(!menuAbierto));
+    navToggle.setAttribute("aria-label", menuAbierto ? "Abrir menú" : "Cerrar menú");
+  });
+
+  navLinks.addEventListener("click", (event) => {
+    if (event.target instanceof HTMLAnchorElement) {
+      cerrarMenu();
+    }
+  });
+}
+
 // 1. Función para consultar los productos y mostrarlos en el DOM (READ)
 async function cargarProductos() {
   if (!listaProductos) return;

@@ -57,6 +57,10 @@ body {
     gap: 20px;
 }
 
+.nav-toggle {
+    display: none;
+}
+
 .nav-links a {
     text-decoration: none;
     color: #64748b;
@@ -306,7 +310,52 @@ textarea:focus {
         grid-template-columns: 1fr;
     }
 
+    .nav-contenido {
+        height: auto;
+        min-height: 65px;
+        flex-wrap: wrap;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+
+    .nav-toggle {
+        display: flex;
+        width: 42px;
+        height: 42px;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background-color: #ffffff;
+        cursor: pointer;
+    }
+
+    .nav-toggle span {
+        width: 20px;
+        height: 2px;
+        background-color: #1e293b;
+    }
+
+    .nav-toggle:focus-visible {
+        outline: 3px solid rgba(37, 99, 235, 0.35);
+        outline-offset: 2px;
+    }
+
     .nav-links {
         display: none;
+        flex-basis: 100%;
+        flex-direction: column;
+        gap: 0;
+        padding: 8px 0 4px;
+    }
+
+    .nav-links.is-open {
+        display: flex;
+    }
+
+    .nav-links a {
+        padding: 8px 0;
     }
 }
